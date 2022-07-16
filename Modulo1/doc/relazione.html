@@ -1,0 +1,188 @@
+<!-- Filippo Bignami -->
+
+<!doctype html>
+<html>
+	<head>
+		<title>Game-FCG</title>
+		<style>
+			h1 {
+				color: blue;
+				font-size: 50px;
+			}
+			h1, h2, h3 {
+				position: relative;
+				text-align: center;
+			}
+			p, ul, li {
+				margin-left: 20px;
+				margin-right: 20px;
+				font-size: 20px;
+			}
+			body {
+			  background-color: lightgrey;
+			}
+			div {
+				width:100%;
+				display: flex;
+				justify-content: center;
+			}
+			img {
+				margin: 5px;
+			}
+		</style>
+	</head>
+	
+	<body>
+		<h1>Game-FCG</h1>
+		<h2>Progetto di Fondamenti di Computer Graphics ( Modulo 1 ) </h2>
+		<h3>Filippo Bignami - nr. matr. 0001004968</h3>
+		
+		<div>
+			<img src="images\scena1.PNG" height="600" >
+		</div>
+		
+		<br>
+		<h2>SCOPO DEL GIOCO</h2>
+		
+		<p>
+			Lo scopo del gioco è utilizzare l'automobile per muoversi nella scena e trovare tutte e tre le chiavi sparse nella città necessarie per aprire la torre 
+			nella quale è rinchiusa la principessa.
+		</p>
+		<br>
+		<br>
+		<h2>SCENA</h2>
+		
+		<div>
+			<img src="images\map.jpg" height="200" >
+			<img src="images\sfondo2.jpg" height="200" >
+			<img src="images\sfondo1.jpg" height="200" >
+			<img src="images\scena2.png" height="200" >
+		</div>
+		
+		<p>
+			Innanzitutto per la realizzazione della scena sono state implementatate 3  coppie vertex-fragment shader.
+			La prima (scene-vs , scene-fs) è stata utilizzata per la resa di quasi tutta la scena in quanto permette di applicare luce e ombre agli oggetti.
+			La seconda (color-vs,color-fs) è stata applicata alla depth texture e infine la terza (world-vs,world-fs) è stata utilizzata per rappresentare le pareti.
+			Per la creazione della scena sono partito dal piano e dalle pareti. 
+			Ho disegnato un piano rettangolare e l'ho texturato con un'immagine che rappresentasse una mappa; successivamente ho creato altri quattro piani e li ho posti al lato della mappa in modo tale che 
+			formassero la "fine " della città.
+			Le pareti sono state texturate con delle immagine scattate da me di un paese sull'appennino.
+			La maggiore difficoltà in questa prima fase è stata la delimitazione degli ostacoli, in quanto in Web-GL non è presente un algoritmo di riconoscimento di collisioni con ostacoli.
+			Per ovviare al problema che la macchina potesse uscire dalla scena ho creato un piccolo codice che non permettesse alla macchina di sorpassare un determinato pixel.
+			La scena è stata poi arricchita con oggetti in formato OBJ Wavefront tutti creati da me attraverso Blender tranne il David che invece è solo stato modificato leggermente.
+			Ogni oggetto è poi stata applicata una texture con un'immagine.
+			L'oggetto principale della scena e anche il più dettagliato è sicuramente la macchina la quale è stata realizzata in Blender.
+			Per ottenere diverse texture sulla macchina essa è stata "frammentata" in diversi oggetti che poi sono stati caricati individualmente sulla scena e poi texturati diversamente.
+			E' lasciato a sviluppi futuri l'implementazione di caricare l'oggetto intero con la sua texture caricata dal file .mtl.
+		</p>
+		
+		
+		<br>
+		<br>
+		<h2>Illuminazione e ombre</h2>
+		
+		<div>
+			<img src="images\scena3.PNG" height="200" >
+			<img src="images\ombre.PNG" height="200" >
+		</div>
+		
+		<p>	
+			Per illuminare il mondo, è stata posta una luce in alto sopra al centro della mappa in modo da simulare la presenza del sole.
+			Tale luce è stata realizzata come una luce direzionale che, colpendo gli oggetti, grazie ad una depth_texture (che sfrutta 
+			le coordinate di profondità), è in grado di determinare quali oggetti sono in ombra e quali no.
+			Si è poi stabilito un bias fisso che limiti il cosiddetto effetto "shadow acne", per quanto possibile.
+			<br><br>
+			Utilizzando questa tecnica l'ombra risulta formata da pixel non rendendo ottimale l'esecuzione, un implementazione futura potrebbe essere 
+			il miglioramento di tale ombra.
+		</p>
+		<br>
+		<br>
+		<h2>La macchina</h2>
+		
+		<div>
+			<img src="images\car.PNG" height="200" >
+			<img src="images\car1.PNG" height="200" >
+			<img src="images\car2.PNG" height="200" >
+
+		</div>
+		
+		<p>	
+			La macchina, al contrario di tutti gli altri oggetti nella scena è un oggetto in movimento.
+			Per il suo moto è stato utilizzato il codice fornito in cg-car2.js.
+			La macchina prevede anche la rotazione delle ruote quando è in movimento, questo è stato possibile grazie all'aggiunta di un rotatazione sull'asse delle x dipendente dalla variabile mozzo.
+			Nel gioco sono anche presenti due telecamere, interscambiabili attraverso un bottone, che permettono di avere la visuale dal retro e dal fronte della macchina.
+		</p>
+
+		<br>
+		<br>
+		<h2>Interfaccia Grafica</h2>
+		
+		<p>
+			L'applicazione è fruibile sia da computer sia da mobile, per questo motivo l'interfaccia è diversa a seconda del contesto usato.
+		</p>	
+		<p>
+			In entrambe le versioni sono presenti due Text-Box. La prima posizionata in alto permette di capire gli obbiettivi del gioco e viene aggiornata man mano che si avanza.
+			La seconda invece contiene i comandi da utilizzare per muoversi e interagire nella scena
+		</p>
+
+		<h3>Versione Computer</h3>
+		
+		<div>
+			<img src="images\car.PNG" height="300" >
+			<img src="images\gui.PNG" height="300" >
+			<img src="images\gui2.PNG" height="300" >
+		</div>
+		<p>
+			In questa versione si può interagire con il gioco attraverso la <ks>tastiera</ks>, che permette di muovere la macchina e attraverso il <ks>mouse</ks>
+			che permette lo spostamente della camera all'interno della scena.
+			I comandi da tastiera sono: 
+			<ul>
+				<li>Tasto W: acceleratore in avanti</li>
+				<li>Tasto S: acceleratore in retromarcia</li>
+				<li>Tasto A: rotazione a sinistra dello sterzo</li>
+				<li>Tasto D: rotazione a destra dello sterzo</li>
+				<li>Barra Spaziatrice: Interagisci</li>
+			</ul>
+
+		</p>
+		<p>
+			Il mouse ha molteplici funzioni: se si tiene premuto il tasto destro la camera cambia e si pone più in alto per permettere una migliore visione della scena e con lo spostamento 
+			del muose puè essere girata. Inoltre attraverso la rotellina  si può aumentare/diminuire lo zoom.
+
+		</p>
+
+		<p>
+			L'interfaccia utente si avvale anche di otto bottoni (i primi 6 modificano i parametri della camera) e cinque slider , questi ultimi creati attraverso la libreria dat.gui.js.
+			I bottoni sono:
+			<ul>
+				<li>Increase D</li>
+				<li>Decrease D</li>
+				<li>Increase THETA</li>
+				<li>Decrease THETA</li>
+				<li>Increase PHI</li>
+				<li>Decrease PHI</li>
+				<li>Swap Camera : permette di cambiare la visuale sulla macchina</li>
+				<li>Reset Camera: permette di risettare la camera con i parametri iniziali</li>
+			</ul>
+		</p>
+		<p>	
+			Gli slider invece permettono di regolare l'intensità della luce e dell'ombra e i parametri che regolano la posizione da cui parte la luce.  
+		</p>
+		
+
+		
+		<br>
+		<h3>Mobile</h3>
+		<div>
+			<img src="images\mobile.png" height="300" >
+		</div>
+		<p>
+			Siccome su mobile non si può utilizzare la tastiera durante il gioco, sulla destra sono stati inseriti i bottoni per poter muovere la macchina e per interagire con 
+			il gioco.
+			Inoltre sono stati spostati i pulsanti per permettere all'utente di avere la migliore esperienza possibile.
+		</p>
+
+		
+		
+	
+	</body>
