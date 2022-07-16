@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - geometry - NURBS</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="main.css">
+		<style>
+			body {
+				background-color: #f0f0f0;
+				color: #444;
+			}
+			a {
+				color: #08f;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="info">
+			<a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> - NURBS curve and surface example
+		</div>
+
+		<!-- Import maps polyfill -->
+		<!-- Remove this when import maps will be widely supported -->
+		<script async src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script>
+
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "./build/three.module.js"
+				}
+			}
+		</script>
+
+		<script type="module">
+
+			import * as THREE from 'three';
+
+			import Stats from './jsm/libs/stats.module.js';
+
+			import { NURBSCurve } from './jsm/curves/NURBSCurve.js';
+			import { NURBSSurface } from './jsm/curves/NURBSSurface.js';
+			import { ParametricGeometry } from './jsm/geometries/ParametricGeometry.js';
+            import { OrbitControls } from './jsm/controls/OrbitControls.js';
+
+			let container, stats;
+
+			let camera, scene, renderer;
+			let group;
+
+			let targetRotation = 0;
+			let targetRotationOnPointerDown = 0;
+
+			let pointerX = 0;
+			let pointerXOnPointerDown = 0;
+
+			let windowHalfX = window.innerWidth / 2;
+            var cube, earth,mars,mercury, venere, sun,  nrbC , nrbC_2,nrbC_3,nrbC_4;
+			var quaternion, object;
+            var npt_earth=450;
+			var npt_mars = 450;
+			var npt_mercury = 450;
+			var npt_venere = 450; // se modifico pt modifico la velocità
+            var step=0 , step_m= 0 , step_mer=0, step_v = 0;
+          
+			var FF_Earth = [];
+			var FF_Mars = [];
+			var FF_Venere = [];
+			var FF_Mercury = [];
+		
+            var FFMatrix = new THREE.Matrix4();
+			var FFMatrix2 = new THREE.Matrix4();
+			var FFMatrix3 = new THREE.Matrix4();
+			var FFMatrix4 = new THREE.Matrix4();
+			var axesHelper2;
+
+
+            
+			init();
+			animate();
+
+			function init() {
+
+				container = document.createElement( 'div' );
+				document.body.appendChild( container );
+
+				camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 1, 5000 );
+				camera.position.set( 25, 5 ,13 );
+                camera.up.x = 0;
+                camera.up.y = 0;
+                camera.up.z = 2;
+                
+
+				scene = new THREE.Scene();
+				// scene.background = new THREE.Color( 0xf0f0f0 );
+
+                //camera.lookAt(scene.position);
+
+
+				scene.add( new THREE.AmbientLight( 0x808080 ) );
+
+				const light = new THREE.DirectionalLight( 0xffffff, 1 );
+				light.position.set( 1, 1, 1 );
+				scene.add( light );
+
+
+				const uvTexture_space = new THREE.TextureLoader().load('./texture/space.jpeg');
+                scene.background = uvTexture_space;
+
+
+                // const axesHelper = new THREE.AxesHelper( 10 );
+                // scene.add( axesHelper );
+
+				// var planeGeometry = new THREE.PlaneGeometry(5,5,1,1);
+                // var planeMaterial = new THREE.MeshBasicMaterial({color: 0xcccccc});
+                // var plane = new THREE.Mesh(planeGeometry,planeMaterial);
+                // plane.position.x = 0;
+                // plane.position.y = 0;
+                // plane.position.z = -1;
+                // scene.add(plane);
+                
+				
+                // var geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+                // var material = new THREE.MeshNormalMaterial();
+                // cube = new THREE.Mesh(geometry, material);
+                // scene.add(cube);
+				// cube.add(camera);
+				const uvTexture_sun = new THREE.TextureLoader().load('./texture/sun.jpg');
+				const sunGeo = new THREE.SphereGeometry(2, 30, 30);
+				const sunMat = new THREE.MeshBasicMaterial({
+					map: uvTexture_sun
+				});
+			    sun = new THREE.Mesh(sunGeo, sunMat);
+				sun.position.set( 0, 0 ,2 );
+				scene.add(sun);
+
+				axesHelper2 = new THREE.AxesHelper( 5);
+                scene.add( axesHelper2 );
+				const uvTexture_earth = new THREE.TextureLoader().load('./texture/earth.jpeg');
+				
+				var geometry_earth = new THREE.SphereGeometry( 1.1, 32, 32 );
+				var material_earth = new THREE.MeshBasicMaterial({ map: uvTexture_earth });
+				earth = new THREE.Mesh( geometry_earth, material_earth );
+				scene.add( earth );
+
+				const uvTexture = new THREE.TextureLoader().load('./texture/mars.jpg');
+				
+				var geometry_mars = new THREE.SphereGeometry( 0.7, 32, 32 );
+				var material_mars = new THREE.MeshBasicMaterial({ map: uvTexture });
+				mars = new THREE.Mesh( geometry_mars, material_mars );
+				scene.add( mars );
+				
+				const uvTexture_mercury = new THREE.TextureLoader().load('./texture/mercury.jpg');
+				var geometry_mercury = new THREE.SphereGeometry( 0.5, 32, 32 );
+				var material_mercury = new THREE.MeshBasicMaterial({ map: uvTexture_mercury });
+				mercury = new THREE.Mesh( geometry_mercury, material_mercury );
+				scene.add( mercury );
+
+				const uvTexture_venere = new THREE.TextureLoader().load('./texture/venus.jpg');
+				
+				var geometry_venere = new THREE.SphereGeometry( 0.9, 32, 32 );
+				var material_venere = new THREE.MeshBasicMaterial({ map: uvTexture_venere });
+				venere = new THREE.Mesh( geometry_venere, material_venere );
+				scene.add( venere );
+
+
+                group = new THREE.Group();
+				scene.add( group );
+
+
+
+
+				
+				create_Orbit_Earth();
+				create_Orbit_Mars();
+				create_Orbit_Mercury();
+				create_Orbit_Venere();
+
+				
+				
+
+				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				container.appendChild( renderer.domElement );
+
+				stats = new Stats();
+				container.appendChild( stats.dom );
+
+				container.style.touchAction = 'none';
+				container.addEventListener( 'pointerdown', onPointerDown );
+
+				//
+
+				window.addEventListener( 'resize', onWindowResize );
+                let cameraControls;
+                cameraControls = new OrbitControls( camera, renderer.domElement );
+                cameraControls.addEventListener( 'change', render );
+			}
+
+			function create_Orbit_Venere(){
+				
+
+                var nurbsControlPoints= [];
+                const nurbsDegree = 5;
+                //const nurbsKnots=[0,0,0,0,0, 0,0.25,0.5,0.75,1, 1,1,1,1,1];
+
+				const nurbsKnots=[0,0,0,0,0, 0,0.25,0.5,0.75,1, 1,1,1,1,1];
+
+				//const nurbsWeight = [0,0,0,0,0,0,0,0,0]
+                var dim = nurbsKnots.length-(nurbsDegree+1);
+
+							const cp = [ 7,0,2,1, 7,8,2,1,
+							0,8,2,1, -7,8,2,1, -7,0,2,1,
+							-7,-8,2,1, 0,-8,2,1, 7,-8,2,1, 7,0,2,1,   ];
+
+				/*const cp = [0.75,0,-0.5,1, 0.75,0.75,-0.5,1,
+                                            -0.75,0.75,1,1, -0.75,0.75,1,1, -0.75,0,-1.5,1.0,
+                                            -0.75,-0.75,1,1, -0.75,-0.75,1,1, 0.75,-0.75,-0.5,1, 0.75,0,-0.5,1];*/
+				
+                // const cp = [ 5.75,0,2,1, 5,0.75,2,1,
+				// -0.75,0.5,-2,1, 0.5,0.5,3,1, 0.25,0,1,1,
+                //                             0.5,-0.75,1,1, -0.5,-0.75,-2,1,   5,-0.75,2,1,   5.75,0,2,1,   ]
+				//così la curva è perpendicolare  al piano(1 il primo elemento)
+				
+				/*const cp = [ 1,0,-0.5,1, 1,0.75,0,1,
+                                            1,0.5,0.75,1, 1,0.5,1,1, 1,0,1,1,
+                                            1,-0.75,1,1, 1,-0.75,0.75,1,   1,-0.75,0,1,   1,0,-0.5,1,   ]*/
+				
+				//così la curva è parallela al piano(1 il terzo elemento)
+				
+
+
+											// const cp = [ 5,5,1,1, 5,5.75,1,1,
+                                            // -5,5.5,1,1, -5,5.5,1,1, -5,5.75,1,1,
+                                            // -5,-5.5,1,1, -5,-5.75,1,1, 5,-5.75,1,1, 5,5,1,1,   ];
+				
+				
+
+
+				//const cp = [0.75,0,-0.5,0.5, 0.75,0.75,-0.5,0.5,
+				//-0.75,0.75,1,0.5, -0.75,0.75,1,0.5, -0.75,0,-1.5,0.5,
+				//-0.75,-0.75,1,0.5, -0.75,-0.75,1,0.5, 0.75,-0.75,-0.5,0.5, 0.75,0,-0.5,0.5];
+
+
+
+                // 2D abbiamo messo  a 1 il terzo elemento di ogni quadrupla
+
+                // const cp = [0.75,0,1.0,1, 0.75,0.75,1.0,1,
+                // -0.75,0.75,1,1, -0.75,0.75,1,1, -0.75,0,1.0,1.0,
+                // -0.75,-0.75,1,1, -0.75,-0.75,1,1, 0.75,-0.75,1.0,1, 0.75,0,1.0,1];
+
+
+
+                var j = 0;
+			
+
+                for ( let i = 0 ; i <= dim -1 ; i++){
+                    nurbsControlPoints.push(
+                        new THREE.Vector4 (
+                            cp[j],
+                            cp[j+1],
+                            cp[j+2],
+                            cp[j+3],
+                        )
+                    );
+                    j=j+4;
+                }
+                
+                var nurbsCurve = new NURBSCurve( nurbsDegree, nurbsKnots, nurbsControlPoints );
+				
+				const nurbsGeometry = new THREE.BufferGeometry();
+				nrbC =  nurbsCurve.getPoints( npt_venere ) ;
+                nurbsGeometry.setFromPoints( nrbC);
+
+				const nurbsMaterial = new THREE.LineBasicMaterial( { color: 0xffff80 } );
+
+				const nurbsLine = new THREE.Line( nurbsGeometry, nurbsMaterial );
+				//nurbsLine.position.set( 200, - 100, 0 );
+				group.add( nurbsLine );
+
+				FF_Venere=nurbsCurve.computeFrenetFrames(npt_venere,true);
+				const nurbsControlPointsGeometry = new THREE.BufferGeometry();
+				nurbsControlPointsGeometry.setFromPoints( nurbsControlPoints );
+
+                
+			
+
+				const nurbsControlPointsMaterial = new THREE.LineBasicMaterial( { color: 0x333333, opacity: 0.25, transparent: true } );
+
+				const nurbsControlPointsLine = new THREE.Line( nurbsControlPointsGeometry, nurbsControlPointsMaterial );
+				//nurbsControlPointsLine.position.copy( nurbsLine.position );
+
+				//group.add( nurbsControlPointsLine );
+
+
+			} 
+
+			
+			
+			function create_Orbit_Mercury(){
+				
+
+                var nurbsControlPoints= [];
+                const nurbsDegree = 5;
+                //const nurbsKnots=[0,0,0,0,0, 0,0.25,0.5,0.75,1, 1,1,1,1,1];
+
+				const nurbsKnots=[0,0,0,0,0, 0,0.25,0.5,0.75,1, 1,1,1,1,1];
+
+				//const nurbsWeight = [0,0,0,0,0,0,0,0,0]
+                var dim = nurbsKnots.length-(nurbsDegree+1);
+
+							const cp = [ 5,0,2,1, 5,6,2,1,
+							0,6,2,1, -5,6,2,1, -5,0,2,1,
+							-5,-6,2,1, 0,-6,2,1, 5,-6,2,1, 5,0,2,1,   ];
+
+				/*const cp = [0.75,0,-0.5,1, 0.75,0.75,-0.5,1,
+                                            -0.75,0.75,1,1, -0.75,0.75,1,1, -0.75,0,-1.5,1.0,
+                                            -0.75,-0.75,1,1, -0.75,-0.75,1,1, 0.75,-0.75,-0.5,1, 0.75,0,-0.5,1];*/
+				
+                // const cp = [ 5.75,0,2,1, 5,0.75,2,1,
+				// -0.75,0.5,-2,1, 0.5,0.5,3,1, 0.25,0,1,1,
+                //                             0.5,-0.75,1,1, -0.5,-0.75,-2,1,   5,-0.75,2,1,   5.75,0,2,1,   ]
+				//così la curva è perpendicolare  al piano(1 il primo elemento)
+				
+				/*const cp = [ 1,0,-0.5,1, 1,0.75,0,1,
+                                            1,0.5,0.75,1, 1,0.5,1,1, 1,0,1,1,
+                                            1,-0.75,1,1, 1,-0.75,0.75,1,   1,-0.75,0,1,   1,0,-0.5,1,   ]*/
+				
+				//così la curva è parallela al piano(1 il terzo elemento)
+				
+
+
+											// const cp = [ 5,5,1,1, 5,5.75,1,1,
+                                            // -5,5.5,1,1, -5,5.5,1,1, -5,5.75,1,1,
+                                            // -5,-5.5,1,1, -5,-5.75,1,1, 5,-5.75,1,1, 5,5,1,1,   ];
+				
+				
+
+
+				//const cp = [0.75,0,-0.5,0.5, 0.75,0.75,-0.5,0.5,
+				//-0.75,0.75,1,0.5, -0.75,0.75,1,0.5, -0.75,0,-1.5,0.5,
+				//-0.75,-0.75,1,0.5, -0.75,-0.75,1,0.5, 0.75,-0.75,-0.5,0.5, 0.75,0,-0.5,0.5];
+
+
+
+                // 2D abbiamo messo  a 1 il terzo elemento di ogni quadrupla
+
+                // const cp = [0.75,0,1.0,1, 0.75,0.75,1.0,1,
+                // -0.75,0.75,1,1, -0.75,0.75,1,1, -0.75,0,1.0,1.0,
+                // -0.75,-0.75,1,1, -0.75,-0.75,1,1, 0.75,-0.75,1.0,1, 0.75,0,1.0,1];
+
+
+
+                var j = 0;
+			
+
+                for ( let i = 0 ; i <= dim -1 ; i++){
+                    nurbsControlPoints.push(
+                        new THREE.Vector4 (
+                            cp[j],
+                            cp[j+1],
+                            cp[j+2],
+                            cp[j+3],
+                        )
+                    );
+                    j=j+4;
+                }
+                
+                var nurbsCurve = new NURBSCurve( nurbsDegree, nurbsKnots, nurbsControlPoints );
+				
+				const nurbsGeometry = new THREE.BufferGeometry();
+				nrbC_2 =  nurbsCurve.getPoints( npt_mercury ) ;
+                nurbsGeometry.setFromPoints( nrbC_2);
+
+				const nurbsMaterial = new THREE.LineBasicMaterial( { color: 0xffffb3 } );
+
+				const nurbsLine = new THREE.Line( nurbsGeometry, nurbsMaterial );
+				//nurbsLine.position.set( 200, - 100, 0 );
+				group.add( nurbsLine );
+
+				FF_Mercury=nurbsCurve.computeFrenetFrames(npt_mercury,true);
+				const nurbsControlPointsGeometry = new THREE.BufferGeometry();
+				nurbsControlPointsGeometry.setFromPoints( nurbsControlPoints );
+
+                
+			
+
+				const nurbsControlPointsMaterial = new THREE.LineBasicMaterial( { color: 0x333333, opacity: 0.25, transparent: true } );
+
+				const nurbsControlPointsLine = new THREE.Line( nurbsControlPointsGeometry, nurbsControlPointsMaterial );
+				//nurbsControlPointsLine.position.copy( nurbsLine.position );
+
+				//group.add( nurbsControlPointsLine );
+
+
+			} 
+
+			
+			function create_Orbit_Earth(){
+				
+
+                var nurbsControlPoints= [];
+                const nurbsDegree = 5;
+                //const nurbsKnots=[0,0,0,0,0, 0,0.25,0.5,0.75,1, 1,1,1,1,1];
+
+				const nurbsKnots=[0,0,0,0,0, 0,0.25,0.5,0.75,1, 1,1,1,1,1];
+
+				//const nurbsWeight = [0,0,0,0,0,0,0,0,0]
+                var dim = nurbsKnots.length-(nurbsDegree+1);
+
+							const cp = [ 10,0,2,1, 10,11,2,1,
+							0,11,2,1, -10,11,2,1, -10,0,2,1,
+							-10,-11,2,1, 0,-11,2,1, 10,-11,2,1, 10,0,2,1,   ];
+
+				/*const cp = [0.75,0,-0.5,1, 0.75,0.75,-0.5,1,
+                                            -0.75,0.75,1,1, -0.75,0.75,1,1, -0.75,0,-1.5,1.0,
+                                            -0.75,-0.75,1,1, -0.75,-0.75,1,1, 0.75,-0.75,-0.5,1, 0.75,0,-0.5,1];*/
+				
+                // const cp = [ 5.75,0,2,1, 5,0.75,2,1,
+				// -0.75,0.5,-2,1, 0.5,0.5,3,1, 0.25,0,1,1,
+                //                             0.5,-0.75,1,1, -0.5,-0.75,-2,1,   5,-0.75,2,1,   5.75,0,2,1,   ]
+				//così la curva è perpendicolare  al piano(1 il primo elemento)
+				
+				/*const cp = [ 1,0,-0.5,1, 1,0.75,0,1,
+                                            1,0.5,0.75,1, 1,0.5,1,1, 1,0,1,1,
+                                            1,-0.75,1,1, 1,-0.75,0.75,1,   1,-0.75,0,1,   1,0,-0.5,1,   ]*/
+				
+				//così la curva è parallela al piano(1 il terzo elemento)
+				
+
+
+											// const cp = [ 5,5,1,1, 5,5.75,1,1,
+                                            // -5,5.5,1,1, -5,5.5,1,1, -5,5.75,1,1,
+                                            // -5,-5.5,1,1, -5,-5.75,1,1, 5,-5.75,1,1, 5,5,1,1,   ];
+				
+				
+
+
+				//const cp = [0.75,0,-0.5,0.5, 0.75,0.75,-0.5,0.5,
+				//-0.75,0.75,1,0.5, -0.75,0.75,1,0.5, -0.75,0,-1.5,0.5,
+				//-0.75,-0.75,1,0.5, -0.75,-0.75,1,0.5, 0.75,-0.75,-0.5,0.5, 0.75,0,-0.5,0.5];
+
+
+
+                // 2D abbiamo messo  a 1 il terzo elemento di ogni quadrupla
+
+                // const cp = [0.75,0,1.0,1, 0.75,0.75,1.0,1,
+                // -0.75,0.75,1,1, -0.75,0.75,1,1, -0.75,0,1.0,1.0,
+                // -0.75,-0.75,1,1, -0.75,-0.75,1,1, 0.75,-0.75,1.0,1, 0.75,0,1.0,1];
+
+
+
+                var j = 0;
+			
+
+                for ( let i = 0 ; i <= dim -1 ; i++){
+                    nurbsControlPoints.push(
+                        new THREE.Vector4 (
+                            cp[j],
+                            cp[j+1],
+                            cp[j+2],
+                            cp[j+3],
+                        )
+                    );
+                    j=j+4;
+                }
+                
+                var nurbsCurve = new NURBSCurve( nurbsDegree, nurbsKnots, nurbsControlPoints );
+				
+				const nurbsGeometry = new THREE.BufferGeometry();
+				nrbC_3 =  nurbsCurve.getPoints( npt_earth ) ;
+                nurbsGeometry.setFromPoints( nrbC_3);
+
+				const nurbsMaterial = new THREE.LineBasicMaterial( { color: 0xffd633 } );
+
+				const nurbsLine = new THREE.Line( nurbsGeometry, nurbsMaterial );
+				//nurbsLine.position.set( 200, - 100, 0 );
+				group.add( nurbsLine );
+
+				FF_Earth=nurbsCurve.computeFrenetFrames(npt_earth,true);
+				const nurbsControlPointsGeometry = new THREE.BufferGeometry();
+				nurbsControlPointsGeometry.setFromPoints( nurbsControlPoints );
+
+                
+			
+
+				const nurbsControlPointsMaterial = new THREE.LineBasicMaterial( { color: 0x333333, opacity: 0.25, transparent: true } );
+
+				const nurbsControlPointsLine = new THREE.Line( nurbsControlPointsGeometry, nurbsControlPointsMaterial );
+				//nurbsControlPointsLine.position.copy( nurbsLine.position );
+
+				//group.add( nurbsControlPointsLine );
+
+
+			} 
+
+			function create_Orbit_Mars(){
+				
+
+                var nurbsControlPoints= [];
+                const nurbsDegree = 5;
+                //const nurbsKnots=[0,0,0,0,0, 0,0.25,0.5,0.75,1, 1,1,1,1,1];
+
+				const nurbsKnots=[0,0,0,0,0, 0,0.25,0.5,0.75,1, 1,1,1,1,1];
+
+				//const nurbsWeight = [0,0,0,0,0,0,0,0,0]
+                var dim = nurbsKnots.length-(nurbsDegree+1);
+
+							const cp = [ 12,0,2,1, 12,13,2,1,
+							0,13,2,1, -12,13,2,1, -12,0,2,1,
+							-12,-13,2,1, 0,-13,2,1, 12,-13,2,1, 12,0,2,1,   ];
+
+				/*const cp = [0.75,0,-0.5,1, 0.75,0.75,-0.5,1,
+                                            -0.75,0.75,1,1, -0.75,0.75,1,1, -0.75,0,-1.5,1.0,
+                                            -0.75,-0.75,1,1, -0.75,-0.75,1,1, 0.75,-0.75,-0.5,1, 0.75,0,-0.5,1];*/
+				
+                // const cp = [ 5.75,0,2,1, 5,0.75,2,1,
+				// -0.75,0.5,-2,1, 0.5,0.5,3,1, 0.25,0,1,1,
+                //                             0.5,-0.75,1,1, -0.5,-0.75,-2,1,   5,-0.75,2,1,   5.75,0,2,1,   ]
+				//così la curva è perpendicolare  al piano(1 il primo elemento)
+				
+				/*const cp = [ 1,0,-0.5,1, 1,0.75,0,1,
+                                            1,0.5,0.75,1, 1,0.5,1,1, 1,0,1,1,
+                                            1,-0.75,1,1, 1,-0.75,0.75,1,   1,-0.75,0,1,   1,0,-0.5,1,   ]*/
+				
+				//così la curva è parallela al piano(1 il terzo elemento)
+				
+
+
+											// const cp = [ 5,5,1,1, 5,5.75,1,1,
+                                            // -5,5.5,1,1, -5,5.5,1,1, -5,5.75,1,1,
+                                            // -5,-5.5,1,1, -5,-5.75,1,1, 5,-5.75,1,1, 5,5,1,1,   ];
+				
+				
+
+
+				//const cp = [0.75,0,-0.5,0.5, 0.75,0.75,-0.5,0.5,
+				//-0.75,0.75,1,0.5, -0.75,0.75,1,0.5, -0.75,0,-1.5,0.5,
+				//-0.75,-0.75,1,0.5, -0.75,-0.75,1,0.5, 0.75,-0.75,-0.5,0.5, 0.75,0,-0.5,0.5];
+
+
+
+                // 2D abbiamo messo  a 1 il terzo elemento di ogni quadrupla
+
+                // const cp = [0.75,0,1.0,1, 0.75,0.75,1.0,1,
+                // -0.75,0.75,1,1, -0.75,0.75,1,1, -0.75,0,1.0,1.0,
+                // -0.75,-0.75,1,1, -0.75,-0.75,1,1, 0.75,-0.75,1.0,1, 0.75,0,1.0,1];
+
+
+
+                var j = 0;
+			
+
+                for ( let i = 0 ; i <= dim -1 ; i++){
+                    nurbsControlPoints.push(
+                        new THREE.Vector4 (
+                            cp[j],
+                            cp[j+1],
+                            cp[j+2],
+                            cp[j+3],
+                        )
+                    );
+                    j=j+4;
+                }
+                
+                var nurbsCurve = new NURBSCurve( nurbsDegree, nurbsKnots, nurbsControlPoints );
+				
+				const nurbsGeometry = new THREE.BufferGeometry();
+				nrbC_4 =  nurbsCurve.getPoints( npt_mars ) ;
+                nurbsGeometry.setFromPoints( nrbC_4);
+
+				const nurbsMaterial = new THREE.LineBasicMaterial( { color: 0xff9933 } );
+
+				const nurbsLine = new THREE.Line( nurbsGeometry, nurbsMaterial );
+				//nurbsLine.position.set( 200, - 100, 0 );
+				group.add( nurbsLine );
+
+				FF_Mars=nurbsCurve.computeFrenetFrames(npt_mars,true);
+				const nurbsControlPointsGeometry = new THREE.BufferGeometry();
+				nurbsControlPointsGeometry.setFromPoints( nurbsControlPoints );
+
+                
+			
+
+				const nurbsControlPointsMaterial = new THREE.LineBasicMaterial( { color: 0x333333, opacity: 0.25, transparent: true } );
+
+				const nurbsControlPointsLine = new THREE.Line( nurbsControlPointsGeometry, nurbsControlPointsMaterial );
+				//nurbsControlPointsLine.position.copy( nurbsLine.position );
+
+				//group.add( nurbsControlPointsLine );
+
+
+			} 
+
+			
+			function onWindowResize() {
+
+				windowHalfX = window.innerWidth / 2;
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+			//
+
+			function onPointerDown( event ) {
+
+				if ( event.isPrimary === false ) return;
+
+				pointerXOnPointerDown = event.clientX - windowHalfX;
+				targetRotationOnPointerDown = targetRotation;
+
+				document.addEventListener( 'pointermove', onPointerMove );
+				document.addEventListener( 'pointerup', onPointerUp );
+
+			}
+
+			function onPointerMove( event ) {
+
+				if ( event.isPrimary === false ) return;
+
+				pointerX = event.clientX - windowHalfX;
+
+				targetRotation = targetRotationOnPointerDown + ( pointerX - pointerXOnPointerDown ) * 0.02;
+
+			}
+
+			function onPointerUp() {
+
+				if ( event.isPrimary === false ) return;
+
+				document.removeEventListener( 'pointermove', onPointerMove );
+				document.removeEventListener( 'pointerup', onPointerUp );
+
+			}
+
+			//
+
+			function animate() {
+
+				requestAnimationFrame( animate );
+				sun.rotateZ(0.004);
+				render();
+				stats.update();
+
+			}
+
+			function render() {
+
+                //group.rotation.y += ( targetRotation - group.rotation.y ) * 0.05;
+                // cube.position.x=nrbC[step].x;
+                // cube.position.y=nrbC[step].y;
+                // cube.position.z=nrbC[step].z;
+				//axesHelper2.position.x =nrbC[step].x ;
+				// axesHelper2.position.y = 2;
+				// axesHelper2.position.z = 2;
+
+				// quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0).normalize(), 0.005);
+    			
+
+                FFMatrix.fromArray([FF_Earth.tangents[step].x,FF_Earth.tangents[step].y,
+									FF_Earth.tangents[step].z,0,
+									FF_Earth.normals[step].x,FF_Earth.normals[step].y,
+									FF_Earth.normals[step].z,0,
+									FF_Earth.binormals[step].x,FF_Earth.binormals[step].y,
+									FF_Earth.binormals[step].z,0,
+                                    nrbC_3[step].x,nrbC_3[step].y,nrbC_3[step].z,1]);
+
+				FFMatrix2.fromArray([FF_Mars.tangents[step_m].x,FF_Mars.tangents[step_m].y,
+									FF_Mars.tangents[step_m].z,0,
+									FF_Mars.normals[step_m].x,FF_Mars.normals[step_m].y,
+									FF_Mars.normals[step_m].z,0,
+									FF_Mars.binormals[step_m].x,FF_Mars.binormals[step_m].y,
+									FF_Mars.binormals[step_m].z,0,
+									nrbC_4[step_m].x,nrbC_4[step_m].y,nrbC_4[step_m].z,1]);
+
+				FFMatrix3.fromArray([FF_Venere.tangents[step_v].x,FF_Venere.tangents[step_v].y,
+									FF_Venere.tangents[step_v].z,0,
+									FF_Venere.normals[step_v].x,FF_Venere.normals[step_v].y,
+									FF_Venere.normals[step_v].z,0,
+									FF_Venere.binormals[step_v].x,FF_Venere.binormals[step_v].y,
+									FF_Venere.binormals[step_v].z,0,
+										nrbC[step_v].x,nrbC[step_v].y,nrbC[step_v].z,1]);
+
+				FFMatrix4.fromArray([FF_Mercury.tangents[step_mer].x,FF_Mercury.tangents[step_mer].y,
+									FF_Mercury.tangents[step_mer].z,0,
+									FF_Mercury.normals[step_mer].x,FF_Mercury.normals[step_mer].y,
+									FF_Mercury.normals[step_mer].z,0,
+									FF_Mercury.binormals[step_mer].x,FF_Mercury.binormals[step_mer].y,
+									FF_Mercury.binormals[step_mer].z,0,
+														nrbC_2[step_mer].x,nrbC_2[step_mer].y,nrbC_2[step_mer].z,1]);
+
+
+                // cube.matrix.copy(FFMatrix);
+                // cube.matrixAutoUpdate = false;
+				//FFMatrix.rotation.x= 0.5 * Math.PI;
+				// axesHelper2.matrix.copy(FFMatrix);
+                // axesHelper2.matrixAutoUpdate = false;
+
+				// sphere.rotation.x = 0.5* Math.PI;
+				earth.matrix.copy(FFMatrix);
+                earth.matrixAutoUpdate = false;
+
+				mars.matrix.copy(FFMatrix2);
+                mars.matrixAutoUpdate = false;
+
+				venere.matrix.copy(FFMatrix3);
+                venere.matrixAutoUpdate = false;
+
+				mercury.matrix.copy(FFMatrix4);
+                mercury.matrixAutoUpdate = false;
+				
+
+				//sphere.rotation.set( new THREE.Euler().setFromQuaternion( quaternion ) );
+
+                step += 1; 
+                if (step>=npt_earth){
+                step=0;
+                }
+				step_m+=1;
+				if (step_m>=npt_mars){
+					step_m=0;
+                }
+				step_mer += 1; 
+                if (step_mer>=npt_mercury){
+                step_mer=0;
+                }
+				step_v+=1;
+				if (step_v>=npt_venere){
+					step_v=0;
+                }
+                
+				renderer.render( scene, camera );
+
+			}
+
+		</script>
+
+	</body>
+</html>
