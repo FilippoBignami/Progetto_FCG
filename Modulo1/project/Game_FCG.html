@@ -1,0 +1,202 @@
+<!doctype html>
+<html>
+	<head>
+	
+		
+		<META HTTP-EQUIV=”Pragma” CONTENT=”no-cache”>
+		<META HTTP-EQUIV=”Cache-Control” CONTENT=”no-cache”>
+		<style>
+
+			
+			body {
+				background: #e7f56d;
+			}
+			#my_Canvas {
+				position: fixed;
+				background: #ffffff;
+				border: thin inset #aaaaaa;
+			}
+			.container {  /*to manage text on canvas and webgl */
+				display: block;
+				width: 0%;
+				height: 80%;
+				position: relative;
+			}
+			.containerText {
+				background-color: aqua;
+				border: black;
+				position: absolute; 
+				width: 900px;
+				left: 10%; 
+				top: 1%;
+			}
+			.containerCommand {
+				background-color: rgb(60, 255, 0);
+				border: black;
+				position: absolute; 
+				font-style: italic;
+				width: 145px;
+				height: 180px;
+				left: 89%; 
+				top: 70%;
+			}
+
+			#text { /*to manage text on canvas and webgl */
+				color: rgb(0, 0, 0);
+				background-color: transparent;  /* needed because we setcanvas bg color to white */
+				position: relative;
+				font-size: 20px;
+			}
+
+			#Command{ /*to manage text on canvas and webgl */
+				color: rgb(0, 0, 0);
+				background-color: transparent;  /* needed because we setcanvas bg color to white */
+				position: relative;
+				font-size: 22px;
+			}
+		</style>
+		
+	</head>
+	
+	<body>
+
+
+		<p> </p>
+		
+
+		<!-- BUTTONS FOR THE MOBILE VERSION-->
+		
+		<button id = "ButtonW" style="font-size: 40px; user-select: none; position:absolute; left: 850px; top: 120px;">W </button>
+		<button id = "ButtonS" style="font-size: 40px; user-select: none; position:absolute; left: 850px; top: 240px;">S </button>
+		<button id = "ButtonA" style="font-size: 40px; user-select: none; position:absolute; left: 750px; top: 180px;">A </button>
+		<button id = "ButtonD" style="font-size: 40px; user-select: none; position:absolute; left: 950px; top: 180px;">D </button>
+		<button id = "ButtonCatch" style="font-size: 30px; user-select: none; position:absolute; left: 800px; top: 70px;">Interagisci</button>
+		
+		<!-- ******************************************************************************************** -->
+		<p> </p>
+		<div class="container" id="containerGame"> 
+			<canvas width="1200" height="650" id="my_Canvas"></canvas>
+		</div>
+		<div class="containerText" id="container_text">
+			<label id="text"></label>
+		</div>	
+		<div class="containerCommand" id="container_command">
+			<label id="Command"></label>
+		</div>
+		
+		<!-- ******************************************************************************************** -->
+		<!-- FS and VS for the sun light -->
+		<!-- ******************************************************************************************** -->
+
+		<script id="scene-vs" type="not-javascript">
+			attribute vec4 a_position;
+			attribute vec2 a_texcoord;
+			attribute vec3 a_normal;
+	
+			uniform mat4 u_projection;
+			uniform mat4 u_view;
+			uniform mat4 u_world;
+			uniform mat4 u_textureMatrix;
+	
+			varying vec2 v_texcoord;
+			varying vec4 v_projectedTexcoord;
+			varying vec3 v_normal;
+	
+			void main() {
+				// Multiply the position by the matrix.
+				vec4 worldPosition = u_world * a_position;
+	
+				gl_Position = u_projection * u_view * worldPosition;
+	
+				// Pass the texture coord to the fragment shader.
+				v_texcoord = a_texcoord;
+	
+				v_projectedTexcoord = u_textureMatrix * worldPosition;
+	
+				// orient the normals and pass to the fragment shader
+				v_normal = mat3(u_world) * a_normal;
+			}
+		</script>
+		<script id="scene-fs" type="not-javascript">
+			precision mediump float;
+
+			// Passed in from the vertex shader.
+			varying vec2 v_texcoord;
+			varying vec4 v_projectedTexcoord;
+			varying vec3 v_normal;
+
+			uniform vec4 u_colorMult;
+			uniform sampler2D u_texture;
+			uniform sampler2D u_projectedTexture;
+			uniform float u_bias;
+			uniform float u_lightIntensity;
+			uniform float u_shadowIntensity;
+			uniform vec3 u_reverseLightDirection;
+
+			void main() {
+				// because v_normal is a varying it's interpolated
+				// so it will not be a unit vector. Normalizing it
+				// will make it a unit vector again
+				vec3 normal = normalize(v_normal);
+
+				float light = dot(normal, u_reverseLightDirection);
+
+				vec3 projectedTexcoord = v_projectedTexcoord.xyz / v_projectedTexcoord.w;
+				float currentDepth = projectedTexcoord.z + u_bias;
+
+				bool inRange =
+					projectedTexcoord.x >= 0.0 &&
+					projectedTexcoord.x <= 1.0 &&
+					projectedTexcoord.y >= 0.0 &&
+					projectedTexcoord.y <= 1.0;
+
+				// the 'r' channel has the depth values
+				float projectedDepth = texture2D(u_projectedTexture, projectedTexcoord.xy).r;
+				float shadowLight = (inRange && projectedDepth <= currentDepth) ? u_shadowIntensity : u_lightIntensity; //2.5;
+
+				vec4 texColor = texture2D(u_texture, v_texcoord) * u_colorMult;
+				gl_FragColor = vec4(texColor.rgb * light * shadowLight,	 texColor.a);
+			}
+		</script>
+		<script  id="color-vs" type="x-shader/x-vertex">
+			attribute vec4 a_position;
+
+			uniform mat4 u_projection;
+			uniform mat4 u_view;
+			uniform mat4 u_world;
+
+			void main() {
+			  // Multiply the position by the matrices.
+			  gl_Position = u_projection * u_view * u_world * a_position;
+			}
+		</script>
+		<script  id="color-fs" type="x-shader/x-fragment">
+			precision mediump float;
+
+			uniform vec4 u_color;
+			void main() {
+			  gl_FragColor = u_color;
+			}
+		</script>
+		
+
+
+		<!-- *********************************************************************************************** -->
+		<!-- LIBRARIES -->
+		<!-- *********************************************************************************************** -->
+
+		
+		<script type="text/javascript" src="resources/webgl-utils.js"></script>
+		<script type="text/javascript" src="resources/m4.js"></script>
+		<script type="text/javascript" src="resources/dat.gui.js"></script>
+		<script type="text/javascript" src="resources/ui_components.js"></script>
+		<script src="carLogic.js"></script>
+		<script src="MyUtils.js"></script>
+		<script src="Rendering.js"></script>
+		<script src="SetGeometries.js"></script>
+		<script src="eventsHandlers.js"></script>
+		<script src="KeyLogic.js"></script>
+		<script src="Game_FGC.js"></script>
+
+		</body>
+</html>  
